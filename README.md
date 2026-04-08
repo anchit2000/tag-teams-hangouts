@@ -1,54 +1,89 @@
-# Plan: Google Chat AI-Team Mention Bot
+# Mention Teams Hangouts
 
-## Context
-Build a Google Apps Script bot for Google Chat. When someone @mentions the bot and types `ai-team`, it @mentions all AI team members. Admins can manage the team list with commands. No server needed — runs free on Google's infrastructure. Team list persists via PropertiesService.
+A Google Chat bot built with Google Apps Script that lets you @mention entire teams at once. Tag the bot with a team name and it notifies all members in one shot.
 
-## Files to Create
+## How It Works
+
+The bot is a Google Workspace Add-on deployed via Apps Script. It uses `PropertiesService` to persist team data — no database or server required.
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `@bot ai-team` | Mentions all members of the `ai` team |
+| `@bot design-team` | Mentions all members of the `design` team |
+| `@bot !create-team <name>` | Creates a new team |
+| `@bot !delete-team <name>` | Deletes a team |
+| `@bot !list-teams` | Lists all teams |
+| `@bot !add-member <team> @user` | Adds a user to a team |
+| `@bot !remove-member <team> @user` | Removes a user from a team |
+| `@bot !list-members <team>` | Lists members of a team |
+| `@bot !help` | Shows all commands |
+
+## Files
 
 | File | Purpose |
-|------|---------|
-| `Code.gs` | Entry point — receives all events from Google Chat |
-| `Teams.gs` | Read/write team members to PropertiesService |
-| `Messages.gs` | Build response text (the @mention strings) |
-| `appsscript.json` | Manifest — OAuth scopes, marks this as a Chat bot |
+|---|---|
+| `Code.gs` | Entry point — named trigger functions called by Google Chat |
+| `Teams.gs` | Data layer — reads/writes team members via PropertiesService |
+| `Messages.gs` | Response builders — constructs the add-on response format |
+| `appsscript.json` | Manifest — OAuth scopes, advanced services, webapp config |
 | `.clasp.json` | (Optional) clasp CLI config for pushing from local machine |
 
-## Commands the Bot Supports
-- `ai-team` / `design-team` / `<name>-team` → mentions all members of that team
-- `!create-team <name>` → creates a new team (e.g. `!create-team design`)
-- `!delete-team <name>` → deletes a team
-- `!list-teams` → shows all existing teams
-- `!add-member <team-name> @user` → adds a user to a team
-- `!remove-member <team-name> @user` → removes a user from a team
-- `!list-members <team-name>` → shows members of a specific team
+## Data Storage (PropertiesService)
 
-## Data Format (PropertiesService)
-Two kinds of keys:
-- `teams_index` → JSON array of team names, e.g. `["ai","design","backend"]`
-- `team_ai`, `team_design`, etc. → JSON array of members per team, e.g. `[{"id":"users/123","displayName":"Alice"}]`
+All data is stored in Apps Script Script Properties:
 
-## Implementation Steps
+- `teams_index` → `["ai", "design", "backend"]` — list of all team names
+- `team_ai` → `[{"id":"users/123","displayName":"Alice"}]` — members per team
 
-1. **Create `Teams.gs`** — getTeamsIndex, createTeam, deleteTeam, getTeam, addMember, removeMember (all with LockService for safe concurrent writes)
+## Setup Guide
 
-2. **Create `Messages.gs`** — buildMentionAll, buildMemberList, buildTeamList, simple text responses
+### 1. Create the Apps Script Project
 
-3. **Create `Code.gs`** — doPost(e) entry point → handleMessage() → dispatch:
-   - If text ends with `-team` → mentionAll for that team
-   - If text starts with `!` → route to the right command handler
+1. Go to [script.google.com](https://script.google.com) → New project
+2. In Project Settings (⚙️) → check **"Show appsscript.json manifest file in editor"**
+3. Create files: `Code.gs`, `Teams.gs`, `Messages.gs`
+4. Paste the contents of each file from this repo
+5. Replace `appsscript.json` with the contents from this repo
+6. In Project Settings → link to your Google Cloud project (enter the GCP project number)
 
-4. **Create `appsscript.json`** — include `chat.bot` scope and `"chat": {}` key
+### 2. Enable Google Chat API
 
-5. **Create `.clasp.json`** — empty template with placeholder scriptId
+1. Go to [Google Cloud Console](https://console.cloud.google.com) → your project
+2. APIs & Services → Library → enable **Google Chat API**
 
-## Key Technical Notes
-- Use `event.message.argumentText` (not `.text`) — it strips the bot @mention prefix
-- To @mention a user in response: `<users/USER_ID>` in the text string
-- Filter bot's own mention from annotations: bot names start with `bots/`, human users start with `users/`
-- Every code change needs a **new deployment** in Apps Script to go live
+### 3. Deploy as Web App
 
-## Setup After Writing Code
-1. Go to script.google.com → new project → paste the files
-2. Enable Google Chat API in Google Cloud Console
-3. Deploy as Web App (Execute as: Me, Access: Anyone)
-4. Register the Web App URL in Google Chat API > Configuration
+1. In Apps Script → **Deploy → New deployment**
+2. Type: **Web app**, Execute as: **Me**, Access: **Anyone**
+3. Copy the **Deployment ID**
+
+### 4. Configure the Chat App
+
+1. Google Cloud Console → Google Chat API → **Configuration**
+2. Fill in App name, Avatar URL, Description
+3. Enable **Interactive features** → check **Join spaces and group conversations**
+4. Connection settings → select **Apps Script**
+5. Paste the **Deployment ID**
+6. Set trigger functions:
+   - App command: `onAppCommand`
+   - Added to space: `onAddedToSpace`
+   - Message: `onMessage`
+   - Removed from space: `onRemovedFromSpace`
+7. Set Visibility to your domain/specific users
+8. Click **Save**
+
+### 5. Add the Bot to a Space
+
+1. Open Google Chat → open a space
+2. Add people & apps → search for your bot name → add it
+3. Type `@BotName !help` to verify it's working
+
+## Development Notes
+
+- **Every code change requires a new deployment** in Apps Script to go live. Update the Deployment ID in Google Cloud Console after each new deployment.
+- The bot uses `event.chat.messagePayload.message` for the event structure (Workspace add-on format), with a fallback to `event.message` for compatibility.
+- Responses use the `hostAppDataAction.chatDataAction.createMessageAction` format required by Workspace add-ons.
+- LockService is used around all PropertiesService writes to prevent race conditions.
+- Members are identified by their Google Chat user ID (`users/123456789`), captured automatically when you `!add-member @user`.

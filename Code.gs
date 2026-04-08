@@ -22,8 +22,9 @@ function onAppCommand(event) {
 // ─── Route the message to the right handler ───────────────────────────────────
 
 function handleMessage(event) {
-  // argumentText is the message with the bot @mention stripped off
-  var text = (event.message.argumentText || '').trim().toLowerCase();
+  // For Workspace add-ons, message is at event.chat.messagePayload.message
+  var msg = event.chat && event.chat.messagePayload ? event.chat.messagePayload.message : event.message;
+  var text = (msg.argumentText || '').trim().toLowerCase();
 
   // "ai-team", "design-team", "backend-team" etc. → mention that whole team
   if (text.endsWith('-team')) {
@@ -118,7 +119,8 @@ function handleRemoveMember(text, event) {
 // Human users have IDs like "users/123", bots have "bots/123" — so we filter by prefix.
 
 function getFirstMentionedUser(event) {
-  var annotations = event.message.annotations || [];
+  var msg = event.chat && event.chat.messagePayload ? event.chat.messagePayload.message : event.message;
+  var annotations = msg.annotations || [];
   for (var i = 0; i < annotations.length; i++) {
     var a = annotations[i];
     if (a.type === 'USER_MENTION' && a.userMention.user.name.indexOf('users/') === 0) {
