@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Team Mention</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <span class="header-icon">@</span>
+    <span class="header-title">Chat Team Mention</span>
+  </div>
+
+  <!-- Team selector -->
+  <div class="section team-bar">
+    <select id="team-select" title="Select team"></select>
+    <button id="new-team-btn" class="icon-btn" title="Create new team">+</button>
+    <button id="delete-team-btn" class="icon-btn danger" title="Delete this team">🗑</button>
+  </div>
+
+  <!-- Member list -->
+  <div class="section">
+    <div class="section-label" id="members-label">Members</div>
+    <div id="member-list" class="member-list"></div>
+    <div id="no-members" class="empty-state" style="display:none">No members yet. Add some below.</div>
+  </div>
+
+  <!-- Recently auto-captured from Google Chat -->
+  <div class="section" id="known-section">
+    <div class="section-label">
+      Recently seen in Google Chat
+      <span class="hint" title="Captured automatically when @mentions appear in Google Chat">?</span>
+    </div>
+    <div id="known-list" class="known-list"></div>
+    <div id="no-known" class="empty-state" style="display:none">
+      Open Google Chat and type <code>@</code> to start capturing teammates automatically.
+    </div>
+  </div>
+
+  <!-- Status message -->
+  <div id="status-msg" class="status-msg" style="display:none"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
