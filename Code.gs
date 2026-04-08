@@ -7,7 +7,7 @@ function onMessage(event) {
 }
 
 function onAddedToSpace(event) {
-  return { text: "Hi! I'm the Team Mention Bot.\nType `!help` to see what I can do." };
+  return textResponse("Hi! I'm the Team Mention Bot.\nType !help to see what I can do.");
 }
 
 function onRemovedFromSpace(event) {
@@ -18,24 +18,6 @@ function onAppCommand(event) {
   return handleMessage(event);
 }
 
-// Legacy web app entry point. This keeps the script compatible with doPost-based invocation.
-
-function doPost(e) {
-  var event = JSON.parse(e.postData.contents);
-
-  // Bot was added to a space — send a welcome message
-  if (event.type === 'ADDED_TO_SPACE') {
-    return respond({ text: "Hi! I'm the Team Mention Bot.\nType `!help` to see what I can do." });
-  }
-
-  // Someone sent a message
-  if (event.type === 'MESSAGE') {
-    return respond(handleMessage(event));
-  }
-
-  // Ignore everything else (e.g. REMOVED_FROM_SPACE)
-  return respond({});
-}
 
 // ─── Route the message to the right handler ───────────────────────────────────
 
@@ -59,7 +41,7 @@ function handleMessage(event) {
   if (text.startsWith('!remove-member '))        return handleRemoveMember(text, event);
 
   // Unknown input
-  return { text: "I didn't understand that. Type `!help` to see available commands." };
+  return textResponse("I didn't understand that. Type !help to see available commands.");
 }
 
 // ─── Mention all members of a team ───────────────────────────────────────────
@@ -67,7 +49,7 @@ function handleMessage(event) {
 function handleMentionTeam(teamName) {
   var members = getTeam(teamName);
   if (members === null) {
-    return { text: 'Team "' + teamName + '" does not exist.\nCreate it with: !create-team ' + teamName };
+    return textResponse('Team "' + teamName + '" does not exist.\nCreate it with: !create-team ' + teamName);
   }
   return buildMentionAll(teamName, members);
 }
@@ -79,59 +61,56 @@ function handleListTeams() {
 }
 
 function handleCreateTeam(text) {
-  // text looks like: "!create-team design"
   var teamName = text.replace('!create-team ', '').trim();
-  if (!teamName) return { text: 'Please provide a team name. Example: !create-team design' };
+  if (!teamName) return textResponse('Please provide a team name. Example: !create-team design');
 
   var result = createTeam(teamName);
-  if (!result.created) return { text: result.reason };
-  return { text: 'Team "' + teamName + '" created! Add members with: !add-member ' + teamName + ' @user' };
+  if (!result.created) return textResponse(result.reason);
+  return textResponse('Team "' + teamName + '" created! Add members with: !add-member ' + teamName + ' @user');
 }
 
 function handleDeleteTeam(text) {
   var teamName = text.replace('!delete-team ', '').trim();
-  if (!teamName) return { text: 'Please provide a team name. Example: !delete-team design' };
+  if (!teamName) return textResponse('Please provide a team name. Example: !delete-team design');
 
   var result = deleteTeam(teamName);
-  if (!result.deleted) return { text: result.reason };
-  return { text: 'Team "' + teamName + '" has been deleted.' };
+  if (!result.deleted) return textResponse(result.reason);
+  return textResponse('Team "' + teamName + '" has been deleted.');
 }
 
 // ─── Member management commands ───────────────────────────────────────────────
 
 function handleListMembers(text) {
-  // text looks like: "!list-members ai"
   var teamName = text.replace('!list-members ', '').trim();
-  if (!teamName) return { text: 'Please provide a team name. Example: !list-members ai' };
+  if (!teamName) return textResponse('Please provide a team name. Example: !list-members ai');
 
   var members = getTeam(teamName);
-  if (members === null) return { text: 'Team "' + teamName + '" does not exist.' };
+  if (members === null) return textResponse('Team "' + teamName + '" does not exist.');
   return buildMemberList(teamName, members);
 }
 
 function handleAddMember(text, event) {
-  // text looks like: "!add-member ai @alice"
   var teamName = text.replace('!add-member ', '').split(' ')[0].trim();
-  if (!teamName) return { text: 'Usage: !add-member <team> @user' };
+  if (!teamName) return textResponse('Usage: !add-member <team> @user');
 
   var target = getFirstMentionedUser(event);
-  if (!target) return { text: 'Please @mention the user you want to add. Example: !add-member ' + teamName + ' @Alice' };
+  if (!target) return textResponse('Please @mention the user you want to add. Example: !add-member ' + teamName + ' @Alice');
 
   var result = addMember(teamName, target.name, target.displayName);
-  if (!result.added) return { text: result.reason };
-  return { text: 'Added ' + target.displayName + ' to the ' + teamName + ' team.' };
+  if (!result.added) return textResponse(result.reason);
+  return textResponse('Added ' + target.displayName + ' to the ' + teamName + ' team.');
 }
 
 function handleRemoveMember(text, event) {
   var teamName = text.replace('!remove-member ', '').split(' ')[0].trim();
-  if (!teamName) return { text: 'Usage: !remove-member <team> @user' };
+  if (!teamName) return textResponse('Usage: !remove-member <team> @user');
 
   var target = getFirstMentionedUser(event);
-  if (!target) return { text: 'Please @mention the user you want to remove. Example: !remove-member ' + teamName + ' @Alice' };
+  if (!target) return textResponse('Please @mention the user you want to remove. Example: !remove-member ' + teamName + ' @Alice');
 
   var result = removeMember(teamName, target.name);
-  if (!result.removed) return { text: result.reason };
-  return { text: 'Removed ' + result.displayName + ' from the ' + teamName + ' team.' };
+  if (!result.removed) return textResponse(result.reason);
+  return textResponse('Removed ' + result.displayName + ' from the ' + teamName + ' team.');
 }
 
 // ─── Helper: extract the first @mentioned human user from the message ─────────
@@ -149,10 +128,3 @@ function getFirstMentionedUser(event) {
   return null;
 }
 
-// ─── Helper: wrap response as JSON output ────────────────────────────────────
-
-function respond(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
