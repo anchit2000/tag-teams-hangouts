@@ -1,6 +1,24 @@
 // Code.gs
-// Main entry point. Google Chat calls doPost() every time someone messages the bot.
-// We read the message text, figure out what the user wants, and return a response.
+// Google Chat Apps Script entry points.
+// These handlers are referenced directly from the Chat API configuration.
+
+function onMessage(event) {
+  return handleMessage(event);
+}
+
+function onAddedToSpace(event) {
+  return { text: "Hi! I'm the Team Mention Bot.\nType `!help` to see what I can do." };
+}
+
+function onRemovedFromSpace(event) {
+  return {};
+}
+
+function onAppCommand(event) {
+  return handleMessage(event);
+}
+
+// Legacy web app entry point. This keeps the script compatible with doPost-based invocation.
 
 function doPost(e) {
   var event = JSON.parse(e.postData.contents);
